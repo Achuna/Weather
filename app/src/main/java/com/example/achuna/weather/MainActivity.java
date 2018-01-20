@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     int tempUnits = 0; // 0 for F and 1 for C
     String expand = "\t\t\t\t(Tap for Details)";
     int adapterChoice = 0; //0 for daily and 1 for hourly
-
+    int num = 0;
 
     CustomAdapter dailyWeatherAdapter;
     CustomAdapter hourlyWeatherAdapter;
