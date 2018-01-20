@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Weather</string>
+    <string-array name="forecast_options">
+        <item>Daily Forecast</item>
+        <item>Hourly Forecast</item>
+    </string-array>
+</resources>
