@@ -145,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         //GPS Coordinates
         LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        //https://api.darksky.net/forecast/40c495d946e7f24d0470be483f05d4d6/-76.8348263,39.16867348
+        //https://api.darksky.net/forecast/8db497397f239659c523cff7a529e763/-76.8348263,39.16867348
         String url = "https://api.darksky.net/forecast/8db497397f239659c523cff7a529e763/";
 
         @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
