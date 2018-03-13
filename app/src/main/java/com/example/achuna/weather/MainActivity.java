@@ -9,7 +9,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.icu.text.StringSearch;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -17,7 +16,6 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.CalendarContract;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -30,7 +28,6 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
@@ -50,8 +47,6 @@ import org.json.JSONObject;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -483,7 +478,8 @@ public class MainActivity extends AppCompatActivity {
                     temp.setText(tempConverter(currentData.getString("temperature"), tempConverter, tempUnits));
                     //temp.setText(currentData.getString("temperature") + " °F");
 
-                    setAlarm(condition.getText().toString(), temp.getText().toString());
+                    Intent start = new Intent(getApplicationContext(), WeatherService.class);
+                    startService(start);
 
                     String summary = currentData.getString("summary").toLowerCase().trim();
                     Log.i("Achuna", summary);
@@ -571,7 +567,7 @@ public class MainActivity extends AppCompatActivity {
         alarm.set(Calendar.SECOND, 0);
 
 
-        Intent setNotification = new Intent(getApplicationContext(), AlertReciever.class);
+        Intent setNotification = new Intent(getApplicationContext(), NotificationReceiver.class);
         setNotification.putExtra("condition", condition);
         setNotification.putExtra("temp", temp);
 

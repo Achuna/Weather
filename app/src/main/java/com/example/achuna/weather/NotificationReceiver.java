@@ -16,7 +16,7 @@ import com.android.volley.Request;
  * Created by Achuna on 3/10/2018.
  */
 
-public class AlertReciever extends BroadcastReceiver {
+public class NotificationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
@@ -28,7 +28,6 @@ public class AlertReciever extends BroadcastReceiver {
 
 
         Intent startMain = new Intent(context, MainActivity.class);
-
         PendingIntent openIntent = PendingIntent.getActivity(context, 1, startMain, PendingIntent.FLAG_UPDATE_CURRENT);
 
 

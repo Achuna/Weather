@@ -22,7 +22,8 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name=".AlertReciever"/>
+        <receiver android:name=".NotificationReceiver"/>
+        <service android:name=".WeatherService"/>
 
     </application>
 
