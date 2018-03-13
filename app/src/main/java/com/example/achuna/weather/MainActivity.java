@@ -1,6 +1,8 @@
 package com.example.achuna.weather;
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -15,6 +17,7 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -69,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     String expand = "\t\t\t\t(Tap for Details)";
     int adapterChoice = 0; //0 for daily and 1 for hourly
 
+    AlarmManager alarmManager;
 
     CustomAdapter dailyWeatherAdapter;
     CustomAdapter hourlyWeatherAdapter;
@@ -104,9 +108,9 @@ public class MainActivity extends AppCompatActivity {
 
 
         //Converts time to int and changes style based on time of day
-        int timeNumber = Integer.parseInt(time.substring(0, 2));
-        Log.i("Achuna", time.substring(0, 2));
-        if ((((timeNumber >= 7 && timeNumber <= 11) && time.contains("PM")) || ((timeNumber >= 1 && timeNumber <= 5) && time.contains("AM"))) || (timeNumber == 12 && time.contains("AM"))) {
+        int timeNumber = calander.get(Calendar.HOUR_OF_DAY);
+
+        if ((((timeNumber >= 19 && timeNumber <= 23)) || ((timeNumber >= 0 && timeNumber <= 5)))) {
             layout.setBackground(getResources().getDrawable(R.drawable.night_background));
             date.setTextColor(Color.WHITE);
             temp.setTextColor(Color.WHITE);
@@ -114,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             coordinates.setTextColor(Color.WHITE);
             toolbar.setBackgroundColor(Color.GRAY);
             isNight = true;
-        }  else if ((timeNumber >= 6 && timeNumber <= 12) && time.contains("AM")) {
+        }  else if ((timeNumber >= 6 && timeNumber < 12)) {
             layout.setBackground(getResources().getDrawable(R.drawable.sunny_blue_background));
             date.setTextColor(Color.BLACK);
             temp.setTextColor(Color.BLACK);
@@ -122,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
             coordinates.setTextColor(Color.BLACK);
             toolbar.setBackgroundColor(getResources().getColor(R.color.toolbar));
             isNight = false;
-        } else if((timeNumber >= 1 && timeNumber <=6) && time.contains("PM") || (timeNumber == 12 && time.contains("PM"))) {
+        } else if((timeNumber >= 12 && timeNumber < 19)) {
             layout.setBackground(getResources().getDrawable(R.drawable.evening_background));
             date.setTextColor(Color.BLACK);
             temp.setTextColor(Color.BLACK);
@@ -479,6 +483,8 @@ public class MainActivity extends AppCompatActivity {
                     temp.setText(tempConverter(currentData.getString("temperature"), tempConverter, tempUnits));
                     //temp.setText(currentData.getString("temperature") + " °F");
 
+                    setAlarm(condition.getText().toString(), temp.getText().toString());
+
                     String summary = currentData.getString("summary").toLowerCase().trim();
                     Log.i("Achuna", summary);
                     //Image changes based on summary
@@ -546,15 +552,43 @@ public class MainActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
 
-
     }
-
 
 
 
     /////////////////////////////////METHODS///////////////////////////////////
 
 
+    public void setAlarm(String condition, String temp) {
+        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+
+        Calendar now = Calendar.getInstance();
+        Calendar alarm = Calendar.getInstance();
+
+
+        alarm.set(Calendar.HOUR_OF_DAY, 7);
+        alarm.set(Calendar.MINUTE, 0);
+        alarm.set(Calendar.SECOND, 0);
+
+
+        Intent setNotification = new Intent(getApplicationContext(), AlertReciever.class);
+        setNotification.putExtra("condition", condition);
+        setNotification.putExtra("temp", temp);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, setNotification, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        long diff = now.getTimeInMillis() - alarm.getTimeInMillis();
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 3, pendingIntent);
+        if(diff > 0) {
+            alarm.add(Calendar.HOUR_OF_DAY, 2);
+            //alarmManager.cancel(pendingIntent);
+        } else {
+            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 3, pendingIntent);
+        }
+
+
+
+    }
 
 
     /**
@@ -579,7 +613,7 @@ public class MainActivity extends AppCompatActivity {
                     image = R.drawable.partly_cloudy;
                 }
 
-            } else if (summary.contains("rain") || summary.contains("shower") || summary.contains("drizzle")) {
+            } else if (summary.contains("rain") || summary.contains("shower") || summary.contains("drizzle") || summary.contains("mixed")) {
                 image = R.drawable.showers;
                 layout.setBackground(getResources().getDrawable(R.drawable.gloomy_background));
                 date.setTextColor(Color.BLACK);
