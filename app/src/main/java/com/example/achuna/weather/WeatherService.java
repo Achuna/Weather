@@ -20,6 +20,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -59,8 +60,8 @@ public class WeatherService extends Service {
             @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             double longitude = location.getLongitude();
             double latitude = location.getLatitude();
-            Log.i("Achuna", Double.toString(longitude));
-            Log.i("Achuna", Double.toString(latitude));
+            Log.i("WeatherService", Double.toString(longitude));
+            Log.i("WeatherService", Double.toString(latitude));
 
 
             //Appends coordinates to dark sky url string
@@ -68,52 +69,33 @@ public class WeatherService extends Service {
 
             url = url + Double.toString(latitude) + ","+Double.toString(longitude);
 
-
             RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
                 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
                 @Override
                 public void onResponse(JSONObject response) {
-                    Log.i("Achuna", response.toString());
                     try {
                         JSONObject currentData = response.getJSONObject("currently");
                         String summary, temp;
                         temp = currentData.getString("temperature");
                         summary = currentData.getString("summary").toLowerCase().trim();
+                        JSONObject daily = response.getJSONObject("daily");
+                        JSONArray dailyData = daily.getJSONArray("data");
+                        JSONObject summaryItem = dailyData.getJSONObject(0);
+                        String daySummary = summaryItem.getString("summary").toLowerCase();
 
 
-                        AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+                        Log.i("WeatherService", temp + "  :  " + summary + "  :   " + daySummary);
 
-                        Calendar now = Calendar.getInstance();
-                        Calendar alarm = Calendar.getInstance();
-
-                        if(now.get(Calendar.HOUR_OF_DAY) <= 21) {
-                            alarm.set(Calendar.HOUR_OF_DAY, now.get(Calendar.HOUR_OF_DAY) + 2);
-                        } else {
-                            alarm.set(Calendar.HOUR_OF_DAY,7);
-                        }
-
-
-                        //For Testing
-//                        alarm.set(Calendar.HOUR_OF_DAY, 21);
-                        alarm.set(Calendar.MINUTE, 0);
-                        alarm.set(Calendar.SECOND, 0);
 
                         Intent notify = new Intent(context, NotificationReceiver.class);
+                        notify.putExtra("summary", daySummary);
                         notify.putExtra("condition", summary);
-                        notify.putExtra("temp", temp);
+                        notify.putExtra("temp", temp + "°F");
 
-                        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, notify, PendingIntent.FLAG_UPDATE_CURRENT);
+                        context.sendBroadcast(notify);
 
-                        long diff = now.getTimeInMillis() - alarm.getTimeInMillis();
-                        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 2, pendingIntent);
-                        if(diff > 0) {
-                            //alarm.add(Calendar.HOUR_OF_DAY, 2);
-                            alarmManager.cancel(pendingIntent);
-                        } else {
-                            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 2, pendingIntent);
-                        }
 
                     } catch (JSONException e) {
                         e.printStackTrace();

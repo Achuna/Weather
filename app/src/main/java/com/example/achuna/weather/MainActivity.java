@@ -1,5 +1,6 @@
 package com.example.achuna.weather;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -8,6 +9,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -16,7 +18,9 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -66,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     int tempUnits = 0; // 0 for F and 1 for C
     String expand = "\t\t\t\t(Tap for Details)";
     int adapterChoice = 0; //0 for daily and 1 for hourly
+    String defaultUrl;
 
     AlarmManager alarmManager;
 
@@ -113,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             coordinates.setTextColor(Color.WHITE);
             toolbar.setBackgroundColor(Color.GRAY);
             isNight = true;
-        }  else if ((timeNumber >= 6 && timeNumber < 12)) {
+        } else if ((timeNumber >= 6 && timeNumber < 12)) {
             layout.setBackground(getResources().getDrawable(R.drawable.sunny_blue_background));
             date.setTextColor(Color.BLACK);
             temp.setTextColor(Color.BLACK);
@@ -121,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
             coordinates.setTextColor(Color.BLACK);
             toolbar.setBackgroundColor(getResources().getColor(R.color.toolbar));
             isNight = false;
-        } else if((timeNumber >= 12 && timeNumber < 19)) {
+        } else if ((timeNumber >= 12 && timeNumber < 19)) {
             layout.setBackground(getResources().getDrawable(R.drawable.evening_background));
             date.setTextColor(Color.BLACK);
             temp.setTextColor(Color.BLACK);
@@ -137,7 +142,9 @@ public class MainActivity extends AppCompatActivity {
         forecast_options.setAdapter(spinnerAdapter);
 
 
-
+        //Set alarms every 30 minutes
+        //Intent schedule = new Intent(getApplicationContext(), ScheduleReceiver.class);
+        //sendBroadcast(schedule);
 
         /////Gathering Information/////////
 
@@ -146,18 +153,39 @@ public class MainActivity extends AppCompatActivity {
 
         //https://api.darksky.net/forecast/8db497397f239659c523cff7a529e763/-76.8348263,39.16867348
         String url = "https://api.darksky.net/forecast/8db497397f239659c523cff7a529e763/";
-
-        @SuppressLint("MissingPermission") Location location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        double longitude = location.getLongitude();
-        double latitude = location.getLatitude();
-        Log.i("Achuna", Double.toString(longitude));
-        Log.i("Achuna", Double.toString(latitude));
-
+        defaultUrl = url+"39.120951,76.856667";
 
         //Get address base on location
-        try{
+        try {
+            @SuppressLint("MissingPermission") Location location = null;
+            if (lm != null) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            }
+            double longitude = location.getLongitude();
+            double latitude = location.getLatitude();
+            Log.i("Achuna", Double.toString(longitude));
+            Log.i("Achuna", Double.toString(latitude));
             Geocoder geo = new Geocoder(getApplicationContext(), Locale.getDefault());
             List<Address> addresses = geo.getFromLocation(latitude, longitude, 1);
+
+
+            //Appends coordinates to dark sky url string
+            //This will update data based on the phones location
+
+            url = url + Double.toString(latitude) + ","+Double.toString(longitude);
+
+            Log.i("Achuna", url);
+
             if (addresses.isEmpty()) {
                 coordinates.setText("Your Location");
             }
@@ -168,12 +196,6 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e) {
             e.printStackTrace();
         }
-
-        //Appends coordinates to dark sky url string
-        //This will update data based on the phones location
-
-        url = url + Double.toString(latitude) + ","+Double.toString(longitude);
-        Log.i("Achuna", url);
 
 
 
@@ -223,6 +245,11 @@ public class MainActivity extends AppCompatActivity {
         final int[] weather_condition_list = new int[8];
         final String[] dailyTemps = new String[8];
         final String[] dailySummaries = new String[8];
+
+        if(url.equals("https://api.darksky.net/forecast/8db497397f239659c523cff7a529e763/")) {
+            url = defaultUrl;
+            coordinates.setText("Laurel, Maryland");
+        }
 
         RequestQueue dailyWeatherRequest = Volley.newRequestQueue(getApplicationContext());
 
@@ -478,9 +505,6 @@ public class MainActivity extends AppCompatActivity {
                     temp.setText(tempConverter(currentData.getString("temperature"), tempConverter, tempUnits));
                     //temp.setText(currentData.getString("temperature") + " °F");
 
-                    Intent start = new Intent(getApplicationContext(), WeatherService.class);
-                    startService(start);
-
                     String summary = currentData.getString("summary").toLowerCase().trim();
                     Log.i("Achuna", summary);
                     //Image changes based on summary
@@ -554,37 +578,6 @@ public class MainActivity extends AppCompatActivity {
 
     /////////////////////////////////METHODS///////////////////////////////////
 
-
-    public void setAlarm(String condition, String temp) {
-        alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-
-        Calendar now = Calendar.getInstance();
-        Calendar alarm = Calendar.getInstance();
-
-
-        alarm.set(Calendar.HOUR_OF_DAY, 7);
-        alarm.set(Calendar.MINUTE, 0);
-        alarm.set(Calendar.SECOND, 0);
-
-
-        Intent setNotification = new Intent(getApplicationContext(), NotificationReceiver.class);
-        setNotification.putExtra("condition", condition);
-        setNotification.putExtra("temp", temp);
-
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, setNotification, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        long diff = now.getTimeInMillis() - alarm.getTimeInMillis();
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 3, pendingIntent);
-        if(diff > 0) {
-            alarm.add(Calendar.HOUR_OF_DAY, 2);
-            //alarmManager.cancel(pendingIntent);
-        } else {
-            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, alarm.getTimeInMillis(), 1000 * 60 * 60 * 3, pendingIntent);
-        }
-
-
-
-    }
 
 
     /**
